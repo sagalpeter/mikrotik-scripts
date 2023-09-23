@@ -1,0 +1,34 @@
+# SMS forwarding script for MikroTIK
+# Use with scheduler with preferred interval
+
+# e-mail address of receiver
+:local emailTo "some@email.local"
+# filename for sms backups (appending every sms to this file)
+# To create this file in MikroTik, use commands:
+#   /file print file="sms-backup.txt"
+#   /file set "sms-backup.txt" contents=""
+:local smsBackupFile "sms-backup.txt"
+
+# other variables
+:local emailMsg
+:local fileContents
+
+# iterate through sms inbox
+:foreach i in=[/tool sms inbox find] do={
+  # compose message to be sent
+  :set emailMsg "Phone: $[/tool sms inbox get $i phone]\nTime: $[/tool sms inbox get $i timestamp]\nMessage: $[/tool sms inbox get $i message]";
+
+  # log
+  :log info "New SMS Received:: Phone: $[/tool sms inbox get $i phone] Time: $[/tool sms inbox get $i timestamp] Message: $[/tool sms inbox get $i message]";
+
+  # send message to email
+  /tool e-mail send to=$emailTo subject="New SMS received" body=$emailMsg;
+
+  # backup this message into file
+  :set fileContents [/file get $smsBackupFile contents];
+  :set fileContents ($fileContents . "\n\n" . $emailMsg);
+  /file set $smsBackupFile contents=$fileContents;
+
+  # remove this message, so it will not be sent to e-mail again
+  /tool sms inbox remove $i;
+}
