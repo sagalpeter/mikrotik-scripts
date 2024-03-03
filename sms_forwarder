@@ -1,14 +1,11 @@
 # SMS forwarding script for MikroTIK
 # Use with scheduler with preferred interval
+# Tested on RBD53GR-5HacD2HnD&R11e-LTE6 (hAP ac³ LTE6 kit), RouterOS 7.14
 
 # e-mail address of receiver
-:local emailTo "some@email.local"
+:local emailTo "some@email.example"
 # filename for sms backups (appending every sms to this file)
-# To create this file in MikroTik, use commands:
-#   /file print file="sms-backup.txt"
-#   /file set "sms-backup.txt" contents=""
 :local smsBackupFile "sms-backup.txt"
-
 # other variables
 :local emailMsg
 :local fileContents
@@ -23,6 +20,12 @@
 
   # send message to email
   /tool e-mail send to=$emailTo subject="New SMS received" body=$emailMsg;
+
+  # check if backup file exists, if not create new one
+  :if ([:len [/file find name=$smsBackupFile]] = 0) do={
+    /file print file=$smsBackupFile;
+    /file set $smsBackupFile contents="#SMS\n";
+  }
 
   # backup this message into file
   :set fileContents [/file get $smsBackupFile contents];
